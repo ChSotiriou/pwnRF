@@ -24,11 +24,10 @@
 #include "main.h"
 #include "cmsis_os.h"
 
-#include "app_subghz_phy.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "subghz_phy_app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -119,11 +118,14 @@ void initTask(void *argument)
   /* init code for SubGHz_Phy */
   MX_SubGHz_Phy_Init();
   /* USER CODE BEGIN initTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
+
+  while (1) {
+	  SubghzApp_Sent("Hello World", 12);
+	  osDelay(1000);
   }
+
+  /* Delete Init Task */
+  osThreadTerminate(NULL);
   /* USER CODE END initTask */
 }
 

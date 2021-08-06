@@ -57,7 +57,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define MAX_TX_BUF 64
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -70,6 +70,19 @@
 static RadioEvents_t RadioEvents;
 
 /* USER CODE BEGIN PV */
+static RadioModems_t radioModem = MODEM_FSK;
+
+/* Tx Config */
+static uint32_t TXfreq = 433e6;
+static uint8_t TXpower = 15; /* dBm */
+static uint32_t TXfdev = 5e3; /* Hz */
+static uint32_t TXdatarate = 600; /* bps */
+static uint8_t TXcrcOn = true;
+static uint8_t TXfreqHop = false;
+static uint8_t TXhopPeriod = 0;
+static uint16_t TXpreambleLen = 5;
+static uint32_t TXtimeout = 1000;
+
 
 /* USER CODE END PV */
 
@@ -134,11 +147,27 @@ void SubghzApp_Init(void)
 
   /* USER CODE BEGIN SubghzApp_Init_2 */
 
+  Radio.SetChannel(TXfreq);
+
+  /*     void    ( *SetTxConfig )( RadioModems_t modem, int8_t power, uint32_t fdev,
+                              uint32_t bandwidth, uint32_t datarate,
+                              uint8_t coderate, uint16_t preambleLen,
+                              bool fixLen, bool crcOn, bool freqHopOn,
+                              uint8_t hopPeriod, bool iqInverted, uint32_t timeout ); */
+  Radio.SetTxConfig(
+		  radioModem, TXpower, TXfdev, 0, TXdatarate,
+		  0, TXpreambleLen, false, TXcrcOn, TXfreqHop,
+		  TXhopPeriod, 0, TXtimeout
+  );
+
+  Radio.SetMaxPayloadLength(radioModem, MAX_TX_BUF);
   /* USER CODE END SubghzApp_Init_2 */
 }
 
 /* USER CODE BEGIN EF */
-
+void SubghzApp_Sent(char *msg, uint8_t size) {
+	Radio.Send(msg, size);
+}
 /* USER CODE END EF */
 
 /* Private functions ---------------------------------------------------------*/
