@@ -1,0 +1,6 @@
+subghz_phy_app.c:120:6:SubghzApp_Init	8	static
+subghz_phy_app.c:145:13:OnTxDone	4	static
+subghz_phy_app.c:152:13:OnRxDone	24	static
+subghz_phy_app.c:159:13:OnTxTimeout	4	static
+subghz_phy_app.c:166:13:OnRxTimeout	4	static
+subghz_phy_app.c:173:13:OnRxError	4	static
