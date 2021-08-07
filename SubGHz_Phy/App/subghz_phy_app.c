@@ -83,6 +83,13 @@ static uint8_t TXhopPeriod = 0;
 static uint16_t TXpreambleLen = 5;
 static uint32_t TXtimeout = 1000;
 
+static osTimerId_t subghzTimer;
+static osTimerAttr_t subghzTimerAttr = {
+		.name = "SUBGHZ Timer"
+};
+
+static char continuousMsg[MAX_TX_BUF];
+static uint32_t continuousSize;
 
 /* USER CODE END PV */
 
@@ -126,7 +133,7 @@ static void OnRxTimeout(void);
 static void OnRxError(void);
 
 /* USER CODE BEGIN PFP */
-
+static void SubghzTimerCallback(void *argument);
 /* USER CODE END PFP */
 
 /* Exported functions ---------------------------------------------------------*/
@@ -149,11 +156,6 @@ void SubghzApp_Init(void)
 
   Radio.SetChannel(TXfreq);
 
-  /*     void    ( *SetTxConfig )( RadioModems_t modem, int8_t power, uint32_t fdev,
-                              uint32_t bandwidth, uint32_t datarate,
-                              uint8_t coderate, uint16_t preambleLen,
-                              bool fixLen, bool crcOn, bool freqHopOn,
-                              uint8_t hopPeriod, bool iqInverted, uint32_t timeout ); */
   Radio.SetTxConfig(
 		  radioModem, TXpower, TXfdev, 0, TXdatarate,
 		  0, TXpreambleLen, false, TXcrcOn, TXfreqHop,
@@ -161,12 +163,26 @@ void SubghzApp_Init(void)
   );
 
   Radio.SetMaxPayloadLength(radioModem, MAX_TX_BUF);
+
+  /* Create Continuous Timer */
+  subghzTimer = osTimerNew(SubghzTimerCallback, osTimerPeriodic, NULL, &subghzTimerAttr);
   /* USER CODE END SubghzApp_Init_2 */
 }
 
 /* USER CODE BEGIN EF */
 void SubghzApp_Sent(char *msg, uint8_t size) {
 	Radio.Send((uint8_t *) msg, size);
+}
+
+void SubghzApp_StartContinuous(char *msg, uint8_t size, uint32_t ms) {
+	memcpy(continuousMsg, msg, size);
+	continuousSize = size;
+
+	osTimerStart(subghzTimer, ms);
+}
+
+void SubghzApp_StopContinuous() {
+	osTimerStop(subghzTimer);
 }
 
 uint32_t SubghzApp_GetFreq() {
@@ -224,6 +240,10 @@ void SubghzApp_SetFreqDeviation(uint32_t fdev) {
 /* USER CODE END EF */
 
 /* Private functions ---------------------------------------------------------*/
+static void SubghzTimerCallback(void *argument) {
+	SubghzApp_Sent(continuousMsg, continuousSize);
+}
+
 static void OnTxDone(void)
 {
   /* USER CODE BEGIN OnTxDone_1 */

@@ -19,3 +19,4 @@ To use the device and access the command line, connect the board to your compute
 - `power [dBm]`: Get/Set the transmitter power (1dBm - 22dBm)
 - `datarate [bps]`: Get/Set the transmitter datarate (0bps - 500kbps)
 - `transmit <msg>`: Transmits a digital message 
+- `transmitContinuous <ms> <msg>`: Continuously transmit a message every ms interval. Pass 0ms to stop transmission.

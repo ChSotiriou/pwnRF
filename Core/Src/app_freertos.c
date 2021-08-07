@@ -122,6 +122,7 @@ void initTask(void *argument)
   MX_SubGHz_Phy_Init();
   /* USER CODE BEGIN initTask */
 
+  /* Initialize Command Line */
   commandLineInit();
 
   /* Delete Init Task */

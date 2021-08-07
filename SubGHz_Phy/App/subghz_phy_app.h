@@ -66,6 +66,9 @@ void SubghzApp_Init(void);
 /* USER CODE BEGIN EFP */
 void SubghzApp_Sent(char *msg, uint8_t size);
 
+void SubghzApp_StartContinuous(char *msg, uint8_t size, uint32_t ms);
+void SubghzApp_StopContinuous();
+
 uint32_t SubghzApp_GetFreq();
 void SubghzApp_SetFreq(uint32_t freq);
 

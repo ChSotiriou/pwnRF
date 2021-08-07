@@ -43,6 +43,7 @@ static BaseType_t commandFreqDeviationCallback(char *pcWriteBuffer, size_t xWrit
 static BaseType_t commandPowerCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandDatarateCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandTransmitCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
+static BaseType_t commandTransmitContinuousCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 
 /********************************
  * Static Variables
@@ -89,6 +90,13 @@ static const CLI_Command_Definition_t commandTransmit = {
     "transmit",
     "transmit [msg]: Transmits a message using the SUBGHZ peripheral\r\n",
     commandTransmitCallback,
+    -1
+};
+
+static const CLI_Command_Definition_t commandTransmitContinuous = {
+    "transmitContinuous",
+    "transmitContinuous [ms] [msg]: Transmits a message using the SUBGHZ peripheral every ms. Pass 0ms to stop\r\n",
+    commandTransmitContinuousCallback,
     -1
 };
 
@@ -223,8 +231,8 @@ static BaseType_t commandTransmitCallback(char *pcWriteBuffer, size_t xWriteBuff
 	BaseType_t paramLen;
 	const char *param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &paramLen);
 
-	if (param != NULL && paramLen < 64) {
-		SubghzApp_Sent((char *) param, paramLen);
+	if (param != NULL && strlen(param) < 64) {
+		SubghzApp_Sent((char *) param, strlen(param));
 		strcpy(pcWriteBuffer, "Successful Transmission\r\n");
 	} else {
 		strcpy(pcWriteBuffer, "Invalid Arguments\r\n");
@@ -232,6 +240,39 @@ static BaseType_t commandTransmitCallback(char *pcWriteBuffer, size_t xWriteBuff
 
 	return pdFALSE;
 }
+
+static BaseType_t commandTransmitContinuousCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
+	memset(pcWriteBuffer, 0, xWriteBufferLen);
+
+	BaseType_t paramLen;
+	const char *param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &paramLen);
+
+	if (param == NULL) {
+		strcpy(pcWriteBuffer, "Invalid Arguments\r\n");
+		return pdFALSE;
+	}
+
+	uint32_t ms = atoll(param);
+
+	if (ms == 0) {
+		SubghzApp_StopContinuous();
+		strcpy(pcWriteBuffer, "Continuous Mode Stopped\r\n");
+		return pdFALSE;
+	}
+
+	param = FreeRTOS_CLIGetParameter(pcCommandString, 2, &paramLen);
+
+	if (param != NULL && strlen(param) < 64) {
+		SubghzApp_StartContinuous((char *) param, strlen(param), ms);
+		strcpy(pcWriteBuffer, "Continuous Transmission Enabled\r\n");
+	} else {
+		strcpy(pcWriteBuffer, "Continuous Mode Stopped\r\n");
+	}
+
+	return pdFALSE;
+}
+
+
 
 static void cliTask (void *argument) {
 	static char rxdata[CLI_BUF_SIZE];
@@ -317,6 +358,7 @@ void commandLineInit(void) {
 	FreeRTOS_CLIRegisterCommand(&commandPower);
 	FreeRTOS_CLIRegisterCommand(&commandDatarate);
 	FreeRTOS_CLIRegisterCommand(&commandTransmit);
+	FreeRTOS_CLIRegisterCommand(&commandTransmitContinuous);
 
 	/* Create Threads */
 	cliThread = osThreadNew(cliTask, NULL, &cliThreadAttr);

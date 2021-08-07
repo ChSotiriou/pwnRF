@@ -1,7 +1,8 @@
 #MicroXplorer Configuration settings - do not modify
 FREERTOS.FootprintOK=true
-FREERTOS.IPParameters=Tasks01,FootprintOK,configTOTAL_HEAP_SIZE,configUSE_NEWLIB_REENTRANT
+FREERTOS.IPParameters=Tasks01,FootprintOK,configTOTAL_HEAP_SIZE,configUSE_NEWLIB_REENTRANT,configTIMER_TASK_PRIORITY
 FREERTOS.Tasks01=initThread,24,512,initTask,Default,NULL,Dynamic,NULL,NULL
+FREERTOS.configTIMER_TASK_PRIORITY=25
 FREERTOS.configTOTAL_HEAP_SIZE=5000
 FREERTOS.configUSE_NEWLIB_REENTRANT=1
 File.Version=6
@@ -273,3 +274,4 @@ VP_TINY_LPM_VS_TINY_LPM.Mode=TINY_LPM_Enabled
 VP_TINY_LPM_VS_TINY_LPM.Signal=TINY_LPM_VS_TINY_LPM
 board=NUCLEO-WL55JC1
 boardIOC=true
+isbadioc=false
