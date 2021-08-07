@@ -192,6 +192,20 @@ void SubghzApp_SetPower(uint32_t power) {
 		  TXhopPeriod, 0, TXtimeout
 	);
 }
+
+uint32_t SubghzApp_GetFreqDeviation() {
+	return TXfdev;
+}
+
+void SubghzApp_SetFreqDeviation(uint32_t fdev) {
+	TXfdev = fdev;
+
+	Radio.SetTxConfig(
+		  radioModem, TXpower, TXfdev, 0, TXdatarate,
+		  0, TXpreambleLen, false, TXcrcOn, TXfreqHop,
+		  TXhopPeriod, 0, TXtimeout
+	);
+}
 /* USER CODE END EF */
 
 /* Private functions ---------------------------------------------------------*/

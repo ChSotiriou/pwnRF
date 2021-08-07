@@ -72,6 +72,8 @@ void SubghzApp_SetFreq(uint32_t freq);
 uint32_t SubghzApp_GetPower();
 void SubghzApp_SetPower(uint32_t power);
 
+uint32_t SubghzApp_GetFreqDeviation();
+void SubghzApp_SetFreqDeviation(uint32_t fdev);
 /* USER CODE END EFP */
 
 #ifdef __cplusplus

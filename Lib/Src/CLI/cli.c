@@ -37,8 +37,9 @@ extern UART_HandleTypeDef huart2;
 /********************************
  * Function Prototypes
  ********************************/
-static BaseType_t commandTestCallback( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
+static BaseType_t commandClearCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandFreqCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
+static BaseType_t commandFreqDeviationCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandPowerCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandTransmitCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 
@@ -47,10 +48,10 @@ static BaseType_t commandTransmitCallback(char *pcWriteBuffer, size_t xWriteBuff
  ********************************/
 
 /* Command Definition */
-static const CLI_Command_Definition_t commandTest = {
-    "test",
-    "test: Hopefully prints out \"Hello World\"\r\n",
-    commandTestCallback,
+static const CLI_Command_Definition_t commandClear = {
+    "clear",
+    "clear: Clears the terminal\r\n",
+    commandClearCallback,
     0
 };
 
@@ -60,6 +61,14 @@ static const CLI_Command_Definition_t commandFreq = {
     commandFreqCallback,
     -1
 };
+
+static const CLI_Command_Definition_t commandFreqDeviation = {
+    "freqDeviation",
+    "freqDeviation [Hz]: Get/Set the frequency deviation\r\n",
+    commandFreqDeviationCallback,
+    -1
+};
+
 
 static const CLI_Command_Definition_t commandPower = {
     "power",
@@ -99,10 +108,11 @@ static osMessageQueueAttr_t cliQueueAttr = {
 /********************************
  * Static Functions
  ********************************/
-static BaseType_t commandTestCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
+static BaseType_t commandClearCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
 	memset(pcWriteBuffer, 0, xWriteBufferLen);
 
-	strcpy(pcWriteBuffer, "Hello World\r\n");
+	/* Move Cursor to the start and clear the screen */
+	strcpy(pcWriteBuffer, "\x1b[H\x1b[2J");
 
 	return pdFALSE;
 }
@@ -130,6 +140,29 @@ static BaseType_t commandFreqCallback(char *pcWriteBuffer, size_t xWriteBufferLe
 	return pdFALSE;
 }
 
+static BaseType_t commandFreqDeviationCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
+	memset(pcWriteBuffer, 0, xWriteBufferLen);
+
+	BaseType_t paramLen;
+	const char *param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &paramLen);
+
+	if (param == NULL) { /* No arguments */
+		snprintf(pcWriteBuffer, xWriteBufferLen, "Frequency Deviation = %.3f kHz\r\n", SubghzApp_GetFreqDeviation() / 1.0e3);
+	} else {
+		uint32_t newFreqDeviation = atoll(param);
+
+		if (newFreqDeviation >= 100 && newFreqDeviation <= 100e3) {
+			SubghzApp_SetFreqDeviation(newFreqDeviation);
+			strcpy(pcWriteBuffer, "Frequency Deviation Set Successfully\r\n");
+		} else {
+			strcpy(pcWriteBuffer, "Invalid Frequency Deviation\r\n");
+		}
+	}
+
+
+	return pdFALSE;
+}
+
 static BaseType_t commandPowerCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
 	memset(pcWriteBuffer, 0, xWriteBufferLen);
 
@@ -145,7 +178,7 @@ static BaseType_t commandPowerCallback(char *pcWriteBuffer, size_t xWriteBufferL
 			SubghzApp_SetPower(newPower);
 			strcpy(pcWriteBuffer, "Power Set Successfully\r\n");
 		} else {
-			strcpy(pcWriteBuffer, "Power Frequency\r\n");
+			strcpy(pcWriteBuffer, "Invalid Power\r\n");
 		}
 	}
 
@@ -154,6 +187,8 @@ static BaseType_t commandPowerCallback(char *pcWriteBuffer, size_t xWriteBufferL
 }
 
 static BaseType_t commandTransmitCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
+	memset(pcWriteBuffer, 0, xWriteBufferLen);
+
 	BaseType_t paramLen;
 	const char *param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &paramLen);
 
@@ -171,6 +206,7 @@ static void cliTask (void *argument) {
 	static char rxdata[CLI_BUF_SIZE];
 	static char txdata[CLI_BUF_SIZE];
 
+	HAL_UART_Transmit(&huart2, (uint8_t *) "> ", 2, 10);
 	HAL_UART_Receive_IT(&huart2, &cliByteRecved, 1);
 
 	for (;;) {
@@ -187,6 +223,7 @@ static void cliTask (void *argument) {
 				while (!responseSent);
 			} while (moreData != pdFALSE);
 
+			HAL_UART_Transmit(&huart2, (uint8_t *) "> ", 2, 10);
 		}
 
 		osDelay(10);
@@ -204,8 +241,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	}
 
 	/* Add Byte to long buffer */
-	recvBuf[recvBufSize] = cliByteRecved;
-	recvBufSize++;
+	if (cliByteRecved == '\b' && recvBufSize != 0) {
+		recvBufSize--;
+		recvBuf[recvBufSize] = 0;
+		HAL_UART_Transmit(&huart2, (uint8_t *) "\b\033[0J", 2, 10);
+	} else {
+		HAL_UART_Transmit(&huart2, &cliByteRecved, 1, 10);
+		recvBuf[recvBufSize] = cliByteRecved;
+		recvBufSize++;
+	}
 
 	/* Check if we got \r\n */
 	if (recvBufSize != 0 && recvBuf[recvBufSize - 2] == '\r' && recvBuf[recvBufSize - 1] == '\n') {
@@ -236,8 +280,9 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
  ********************************/
 void commandLineInit(void) {
 	/* Register Commands */
-	FreeRTOS_CLIRegisterCommand(&commandTest);
+	FreeRTOS_CLIRegisterCommand(&commandClear);
 	FreeRTOS_CLIRegisterCommand(&commandFreq);
+	FreeRTOS_CLIRegisterCommand(&commandFreqDeviation);
 	FreeRTOS_CLIRegisterCommand(&commandPower);
 	FreeRTOS_CLIRegisterCommand(&commandTransmit);
 
