@@ -47,7 +47,8 @@ Core/Src/app_freertos.o: ../Core/Src/app_freertos.c \
  ../Drivers/STM32WLxx_HAL_Driver/Inc/stm32wlxx_ll_system.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h \
- ../SubGHz_Phy/App/subghz_phy_app.h
+ ../SubGHz_Phy/App/app_subghz_phy.h ../SubGHz_Phy/App/subghz_phy_app.h \
+ ../Lib/Inc/CLI/cli.h
 
 ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
 
@@ -147,4 +148,8 @@ Core/Src/app_freertos.o: ../Core/Src/app_freertos.c \
 
 ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h:
 
+../SubGHz_Phy/App/app_subghz_phy.h:
+
 ../SubGHz_Phy/App/subghz_phy_app.h:
+
+../Lib/Inc/CLI/cli.h:

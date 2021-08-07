@@ -24,10 +24,13 @@
 #include "main.h"
 #include "cmsis_os.h"
 
+#include "app_subghz_phy.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "subghz_phy_app.h"
+
+#include "CLI/cli.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -119,13 +122,10 @@ void initTask(void *argument)
   MX_SubGHz_Phy_Init();
   /* USER CODE BEGIN initTask */
 
-  while (1) {
-	  SubghzApp_Sent("Hello World", 12);
-	  osDelay(1000);
-  }
+  commandLineInit();
 
   /* Delete Init Task */
-  osThreadTerminate(NULL);
+  osThreadTerminate(initThreadHandle);
   /* USER CODE END initTask */
 }
 

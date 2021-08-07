@@ -23,10 +23,12 @@ SUBDIRS := \
 Core/Src \
 Core/Startup \
 Drivers/STM32WLxx_HAL_Driver/Src \
+Lib/Src/CLI \
 Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 \
 Middlewares/Third_Party/FreeRTOS/Source \
 Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM3 \
 Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang \
+Middlewares/Third_Party/FreeRTOS-Plus-CLI \
 Middlewares/Third_Party/SubGHz_Phy/stm32_radio_driver \
 SubGHz_Phy/App \
 SubGHz_Phy/Target \
