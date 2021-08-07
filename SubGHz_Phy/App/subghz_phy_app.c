@@ -166,7 +166,31 @@ void SubghzApp_Init(void)
 
 /* USER CODE BEGIN EF */
 void SubghzApp_Sent(char *msg, uint8_t size) {
-	Radio.Send(msg, size);
+	Radio.Send((uint8_t *) msg, size);
+}
+
+uint32_t SubghzApp_GetFreq() {
+	return TXfreq;
+}
+
+void SubghzApp_SetFreq(uint32_t freq) {
+	TXfreq = freq;
+
+	Radio.SetChannel(TXfreq);
+}
+
+uint32_t SubghzApp_GetPower() {
+	return TXpower;
+}
+
+void SubghzApp_SetPower(uint32_t power) {
+	TXpower = power;
+
+	Radio.SetTxConfig(
+		  radioModem, TXpower, TXfdev, 0, TXdatarate,
+		  0, TXpreambleLen, false, TXcrcOn, TXfreqHop,
+		  TXhopPeriod, 0, TXtimeout
+	);
 }
 /* USER CODE END EF */
 

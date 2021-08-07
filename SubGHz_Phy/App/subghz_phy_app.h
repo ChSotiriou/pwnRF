@@ -26,7 +26,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -64,6 +64,13 @@ extern "C" {
 void SubghzApp_Init(void);
 
 /* USER CODE BEGIN EFP */
+void SubghzApp_Sent(char *msg, uint8_t size);
+
+uint32_t SubghzApp_GetFreq();
+void SubghzApp_SetFreq(uint32_t freq);
+
+uint32_t SubghzApp_GetPower();
+void SubghzApp_SetPower(uint32_t power);
 
 /* USER CODE END EFP */
 

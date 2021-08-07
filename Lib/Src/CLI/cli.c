@@ -10,6 +10,8 @@
  ********************************/
 #include "CLI/cli.h"
 
+#include "subghz_phy_app.h"
+
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
 #include "FreeRTOS_CLI.h"
@@ -18,11 +20,13 @@
 #include "stm32wlxx_hal.h"
 
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /********************************
  * Defines
  ********************************/
-#define CLI_BUF_SIZE 64
+#define CLI_BUF_SIZE 128
 #define CLI_QUEUE_SIZE 5
 
 /********************************
@@ -34,6 +38,9 @@ extern UART_HandleTypeDef huart2;
  * Function Prototypes
  ********************************/
 static BaseType_t commandTestCallback( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
+static BaseType_t commandFreqCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
+static BaseType_t commandPowerCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
+static BaseType_t commandTransmitCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 
 /********************************
  * Static Variables
@@ -47,6 +54,28 @@ static const CLI_Command_Definition_t commandTest = {
     0
 };
 
+static const CLI_Command_Definition_t commandFreq = {
+    "freq",
+    "freq [Hz]: Get/Set the current transmitting frequency\r\n",
+    commandFreqCallback,
+    -1
+};
+
+static const CLI_Command_Definition_t commandPower = {
+    "power",
+    "power [dBm]: Get/Set the current transmitting power\r\n",
+    commandPowerCallback,
+    -1
+};
+
+static const CLI_Command_Definition_t commandTransmit = {
+    "transmit",
+    "transmit [msg]: Transmits a message using the SUBGHZ peripheral\r\n",
+    commandTransmitCallback,
+    -1
+};
+
+
 /* UART Receive */
 uint8_t cliByteRecved;
 static uint8_t recvBuf[CLI_BUF_SIZE] = {0};
@@ -57,7 +86,7 @@ static uint8_t responseSent = 0;
 static osThreadId_t cliThread;
 static osThreadAttr_t cliThreadAttr = {
 		.name = "cliThread",
-		.stack_size = 512,
+		.stack_size = 1024,
 		.priority = osPriorityAboveNormal
 };
 
@@ -70,10 +99,70 @@ static osMessageQueueAttr_t cliQueueAttr = {
 /********************************
  * Static Functions
  ********************************/
-static BaseType_t commandTestCallback( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
+static BaseType_t commandTestCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
 	memset(pcWriteBuffer, 0, xWriteBufferLen);
 
 	strcpy(pcWriteBuffer, "Hello World\r\n");
+
+	return pdFALSE;
+}
+
+static BaseType_t commandFreqCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
+	memset(pcWriteBuffer, 0, xWriteBufferLen);
+
+	BaseType_t paramLen;
+	const char *param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &paramLen);
+
+	if (param == NULL) { /* No arguments */
+		snprintf(pcWriteBuffer, xWriteBufferLen, "Frequency = %.3f MHz\r\n", SubghzApp_GetFreq() / 1.0e6);
+	} else {
+		uint32_t newFreq = atoll(param);
+
+		if (newFreq >= 1e6 && newFreq < 1e9) {
+			SubghzApp_SetFreq(newFreq);
+			strcpy(pcWriteBuffer, "Frequency Set Successfully\r\n");
+		} else {
+			strcpy(pcWriteBuffer, "Invalid Frequency\r\n");
+		}
+	}
+
+
+	return pdFALSE;
+}
+
+static BaseType_t commandPowerCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
+	memset(pcWriteBuffer, 0, xWriteBufferLen);
+
+	BaseType_t paramLen;
+	const char *param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &paramLen);
+
+	if (param == NULL) { /* No arguments */
+		snprintf(pcWriteBuffer, xWriteBufferLen, "Power = %lu dBm\r\n", SubghzApp_GetPower());
+	} else {
+		uint32_t newPower = atoll(param);
+
+		if (newPower > 0 && newPower <= 22) {
+			SubghzApp_SetPower(newPower);
+			strcpy(pcWriteBuffer, "Power Set Successfully\r\n");
+		} else {
+			strcpy(pcWriteBuffer, "Power Frequency\r\n");
+		}
+	}
+
+
+	return pdFALSE;
+}
+
+static BaseType_t commandTransmitCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
+	BaseType_t paramLen;
+	const char *param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &paramLen);
+
+	if (param != NULL && paramLen < 64) {
+		SubghzApp_Sent((char *) param, paramLen);
+		strcpy(pcWriteBuffer, "Successful Transmission\r\n");
+	} else {
+		strcpy(pcWriteBuffer, "Invalid Arguments\r\n");
+	}
 
 	return pdFALSE;
 }
@@ -148,6 +237,9 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 void commandLineInit(void) {
 	/* Register Commands */
 	FreeRTOS_CLIRegisterCommand(&commandTest);
+	FreeRTOS_CLIRegisterCommand(&commandFreq);
+	FreeRTOS_CLIRegisterCommand(&commandPower);
+	FreeRTOS_CLIRegisterCommand(&commandTransmit);
 
 	/* Create Threads */
 	cliThread = osThreadNew(cliTask, NULL, &cliThreadAttr);
