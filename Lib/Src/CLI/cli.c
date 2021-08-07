@@ -41,6 +41,7 @@ static BaseType_t commandClearCallback(char *pcWriteBuffer, size_t xWriteBufferL
 static BaseType_t commandFreqCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandFreqDeviationCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandPowerCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
+static BaseType_t commandDatarateCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandTransmitCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 
 /********************************
@@ -74,6 +75,13 @@ static const CLI_Command_Definition_t commandPower = {
     "power",
     "power [dBm]: Get/Set the current transmitting power\r\n",
     commandPowerCallback,
+    -1
+};
+
+static const CLI_Command_Definition_t commandDatarate = {
+    "datarate",
+    "datarate [bps]: Get/Set the current transmitting datarate\r\n",
+    commandDatarateCallback,
     -1
 };
 
@@ -186,6 +194,29 @@ static BaseType_t commandPowerCallback(char *pcWriteBuffer, size_t xWriteBufferL
 	return pdFALSE;
 }
 
+static BaseType_t commandDatarateCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
+	memset(pcWriteBuffer, 0, xWriteBufferLen);
+
+	BaseType_t paramLen;
+	const char *param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &paramLen);
+
+	if (param == NULL) { /* No arguments */
+		snprintf(pcWriteBuffer, xWriteBufferLen, "Datarate = %lu bps\r\n", SubghzApp_GetDatarate());
+	} else {
+		uint32_t newDatarate = atoll(param);
+
+		if (newDatarate > 0 && newDatarate <= 500e3) {
+			SubghzApp_SetDatarate(newDatarate);
+			strcpy(pcWriteBuffer, "Datarate Set Successfully\r\n");
+		} else {
+			strcpy(pcWriteBuffer, "Invalid Datarate\r\n");
+		}
+	}
+
+
+	return pdFALSE;
+}
+
 static BaseType_t commandTransmitCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
 	memset(pcWriteBuffer, 0, xWriteBufferLen);
 
@@ -244,7 +275,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (cliByteRecved == '\b' && recvBufSize != 0) {
 		recvBufSize--;
 		recvBuf[recvBufSize] = 0;
-		HAL_UART_Transmit(&huart2, (uint8_t *) "\b\033[0J", 2, 10);
+		HAL_UART_Transmit(&huart2, (uint8_t *) "\b", 1, 10);
 	} else {
 		HAL_UART_Transmit(&huart2, &cliByteRecved, 1, 10);
 		recvBuf[recvBufSize] = cliByteRecved;
@@ -284,6 +315,7 @@ void commandLineInit(void) {
 	FreeRTOS_CLIRegisterCommand(&commandFreq);
 	FreeRTOS_CLIRegisterCommand(&commandFreqDeviation);
 	FreeRTOS_CLIRegisterCommand(&commandPower);
+	FreeRTOS_CLIRegisterCommand(&commandDatarate);
 	FreeRTOS_CLIRegisterCommand(&commandTransmit);
 
 	/* Create Threads */

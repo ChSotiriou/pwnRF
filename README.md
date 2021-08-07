@@ -17,4 +17,5 @@ To use the device and access the command line, connect the board to your compute
 - `freq [Hz]`: Get/Set the transmitting frequency (1MHz - 1GHz)
 - `freqDeviation [Hz]`: Get/Set the transmitting frequency deviation (100Hz - 100kHz)
 - `power [dBm]`: Get/Set the transmitter power (1dBm - 22dBm)
+- `datarate [bps]`: Get/Set the transmitter datarate (0bps - 500kbps)
 - `transmit <msg>`: Transmits a digital message 

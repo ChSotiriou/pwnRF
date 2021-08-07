@@ -193,6 +193,21 @@ void SubghzApp_SetPower(uint32_t power) {
 	);
 }
 
+uint32_t SubghzApp_GetDatarate() {
+	return TXdatarate;
+}
+
+void SubghzApp_SetDatarate(uint32_t datarate) {
+	TXdatarate = datarate;
+	TXtimeout = MAX_TX_BUF * 1000 / datarate;
+
+	Radio.SetTxConfig(
+		  radioModem, TXpower, TXfdev, 0, TXdatarate,
+		  0, TXpreambleLen, false, TXcrcOn, TXfreqHop,
+		  TXhopPeriod, 0, TXtimeout
+	);
+}
+
 uint32_t SubghzApp_GetFreqDeviation() {
 	return TXfdev;
 }
