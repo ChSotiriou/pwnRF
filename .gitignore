@@ -2,4 +2,4 @@ Debug/*
 !*.elf
 
 .vscode
-.gi
+.settings
