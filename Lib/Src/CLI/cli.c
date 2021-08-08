@@ -42,6 +42,7 @@ static BaseType_t commandFreqCallback(char *pcWriteBuffer, size_t xWriteBufferLe
 static BaseType_t commandFreqDeviationCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandPowerCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandDatarateCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
+static BaseType_t commandCRCCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandTransmitCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandTransmitContinuousCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 
@@ -83,6 +84,13 @@ static const CLI_Command_Definition_t commandDatarate = {
     "datarate",
     "datarate [bps]: Get/Set the current transmitting datarate\r\n",
     commandDatarateCallback,
+    -1
+};
+
+static const CLI_Command_Definition_t commandCRC = {
+    "crc",
+    "crc [on|off]: Get/Set the if a CRC is transmitted\r\n",
+    commandCRCCallback,
     -1
 };
 
@@ -218,6 +226,29 @@ static BaseType_t commandDatarateCallback(char *pcWriteBuffer, size_t xWriteBuff
 			strcpy(pcWriteBuffer, "Datarate Set Successfully\r\n");
 		} else {
 			strcpy(pcWriteBuffer, "Invalid Datarate\r\n");
+		}
+	}
+
+	return pdFALSE;
+}
+
+static BaseType_t commandCRCCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
+	memset(pcWriteBuffer, 0, xWriteBufferLen);
+
+	BaseType_t paramLen;
+	const char *param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &paramLen);
+
+	if (param == NULL) { /* No arguments */
+		snprintf(pcWriteBuffer, xWriteBufferLen, "CRC is %s\r\n", SubghzApp_GetCRC() ? "On" : "Off");
+	} else {
+		if (!strncmp(param, "on", paramLen)) {
+			strcpy(pcWriteBuffer, "Turned CRC On\r\n");
+			SubghzApp_SetCRC(1);
+		} else if (!strncmp(param, "off", paramLen)) {
+			strcpy(pcWriteBuffer, "Turned CRC Off\r\n");
+			SubghzApp_SetCRC(0);
+		} else {
+			strcpy(pcWriteBuffer, "Invalid Argument\r\n");
 		}
 	}
 
@@ -357,6 +388,7 @@ void commandLineInit(void) {
 	FreeRTOS_CLIRegisterCommand(&commandFreqDeviation);
 	FreeRTOS_CLIRegisterCommand(&commandPower);
 	FreeRTOS_CLIRegisterCommand(&commandDatarate);
+	FreeRTOS_CLIRegisterCommand(&commandCRC);
 	FreeRTOS_CLIRegisterCommand(&commandTransmit);
 	FreeRTOS_CLIRegisterCommand(&commandTransmitContinuous);
 

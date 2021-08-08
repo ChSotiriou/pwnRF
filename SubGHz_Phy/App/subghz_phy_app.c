@@ -134,6 +134,7 @@ static void OnRxError(void);
 
 /* USER CODE BEGIN PFP */
 static void SubghzTimerCallback(void *argument);
+static void SubghzRegisterTxConfig();
 /* USER CODE END PFP */
 
 /* Exported functions ---------------------------------------------------------*/
@@ -156,11 +157,7 @@ void SubghzApp_Init(void)
 
   Radio.SetChannel(TXfreq);
 
-  Radio.SetTxConfig(
-		  radioModem, TXpower, TXfdev, 0, TXdatarate,
-		  0, TXpreambleLen, false, TXcrcOn, TXfreqHop,
-		  TXhopPeriod, 0, TXtimeout
-  );
+  SubghzRegisterTxConfig();
 
   Radio.SetMaxPayloadLength(radioModem, MAX_TX_BUF);
 
@@ -202,11 +199,17 @@ uint32_t SubghzApp_GetPower() {
 void SubghzApp_SetPower(uint32_t power) {
 	TXpower = power;
 
-	Radio.SetTxConfig(
-		  radioModem, TXpower, TXfdev, 0, TXdatarate,
-		  0, TXpreambleLen, false, TXcrcOn, TXfreqHop,
-		  TXhopPeriod, 0, TXtimeout
-	);
+	SubghzRegisterTxConfig();
+}
+
+uint8_t SubghzApp_GetCRC() {
+	return TXcrcOn;
+}
+
+void SubghzApp_SetCRC(uint8_t crcEn) {
+	TXcrcOn = crcEn;
+
+	SubghzRegisterTxConfig();
 }
 
 uint32_t SubghzApp_GetDatarate() {
@@ -215,13 +218,9 @@ uint32_t SubghzApp_GetDatarate() {
 
 void SubghzApp_SetDatarate(uint32_t datarate) {
 	TXdatarate = datarate;
-	TXtimeout = MAX_TX_BUF * 1000 / datarate;
+	TXtimeout = 2 * MAX_TX_BUF * 1000 / datarate;
 
-	Radio.SetTxConfig(
-		  radioModem, TXpower, TXfdev, 0, TXdatarate,
-		  0, TXpreambleLen, false, TXcrcOn, TXfreqHop,
-		  TXhopPeriod, 0, TXtimeout
-	);
+	SubghzRegisterTxConfig();
 }
 
 uint32_t SubghzApp_GetFreqDeviation() {
@@ -231,15 +230,19 @@ uint32_t SubghzApp_GetFreqDeviation() {
 void SubghzApp_SetFreqDeviation(uint32_t fdev) {
 	TXfdev = fdev;
 
+	SubghzRegisterTxConfig();
+}
+/* USER CODE END EF */
+
+/* Private functions ---------------------------------------------------------*/
+static void SubghzRegisterTxConfig() {
 	Radio.SetTxConfig(
 		  radioModem, TXpower, TXfdev, 0, TXdatarate,
 		  0, TXpreambleLen, false, TXcrcOn, TXfreqHop,
 		  TXhopPeriod, 0, TXtimeout
 	);
 }
-/* USER CODE END EF */
 
-/* Private functions ---------------------------------------------------------*/
 static void SubghzTimerCallback(void *argument) {
 	SubghzApp_Sent(continuousMsg, continuousSize);
 }

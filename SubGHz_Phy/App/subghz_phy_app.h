@@ -80,6 +80,9 @@ void SubghzApp_SetDatarate(uint32_t power);
 
 uint32_t SubghzApp_GetFreqDeviation();
 void SubghzApp_SetFreqDeviation(uint32_t fdev);
+
+uint8_t SubghzApp_GetCRC();
+void SubghzApp_SetCRC(uint8_t crcEn);
 /* USER CODE END EFP */
 
 #ifdef __cplusplus
