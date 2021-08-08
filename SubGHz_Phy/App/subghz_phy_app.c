@@ -58,6 +58,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define MAX_TX_BUF 64
+#define SYNCWORD_MAX_LEN 8
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -72,16 +73,15 @@ static RadioEvents_t RadioEvents;
 /* USER CODE BEGIN PV */
 static RadioModems_t radioModem = MODEM_FSK;
 
+
 /* Tx Config */
+static TxConfigGeneric_t txConfig;
+
+static uint8_t TXsyncWord[SYNCWORD_MAX_LEN];
 static uint32_t TXfreq = 433e6;
-static uint8_t TXpower = 15; /* dBm */
-static uint32_t TXfdev = 5e3; /* Hz */
-static uint32_t TXdatarate = 600; /* bps */
-static uint8_t TXcrcOn = true;
-static uint8_t TXfreqHop = false;
-static uint8_t TXhopPeriod = 0;
-static uint16_t TXpreambleLen = 5;
-static uint32_t TXtimeout = 1000;
+static uint8_t TXpower = 15;
+static uint32_t TXtimeout;
+
 
 static osTimerId_t subghzTimer;
 static osTimerAttr_t subghzTimerAttr = {
@@ -157,6 +157,21 @@ void SubghzApp_Init(void)
 
   Radio.SetChannel(TXfreq);
 
+  txConfig.fsk.Bandwidth = 0;
+  txConfig.fsk.BitRate = 600;
+  txConfig.fsk.FrequencyDeviation = 5e3;
+  txConfig.fsk.CrcLength = RADIO_FSK_CRC_OFF;
+  txConfig.fsk.CrcPolynomial = 0x8005; /* IBM CRC | Reference Manual */
+  txConfig.fsk.HeaderType = RADIO_FSK_PACKET_FIXED_LENGTH; /* No Header */
+  txConfig.fsk.Whitening = RADIO_FSK_DC_FREE_OFF; /* No Whitening */
+  txConfig.fsk.whiteSeed = 0xffff; /* Not Used */
+  txConfig.fsk.ModulationShaping = RADIO_FSK_MOD_SHAPING_OFF; /* Extra Filtering */
+  txConfig.fsk.PreambleLen = 5;
+  txConfig.fsk.SyncWordLength = 0;
+  txConfig.fsk.SyncWord = TXsyncWord;
+
+  TXtimeout = 2 * MAX_TX_BUF * 1000 / txConfig.fsk.BitRate;
+
   SubghzRegisterTxConfig();
 
   Radio.SetMaxPayloadLength(radioModem, MAX_TX_BUF);
@@ -203,32 +218,32 @@ void SubghzApp_SetPower(uint32_t power) {
 }
 
 uint8_t SubghzApp_GetCRC() {
-	return TXcrcOn;
+	return txConfig.fsk.CrcLength != RADIO_FSK_CRC_OFF;
 }
 
 void SubghzApp_SetCRC(uint8_t crcEn) {
-	TXcrcOn = crcEn;
+	txConfig.fsk.CrcLength = crcEn ? RADIO_FSK_CRC_2_BYTES : RADIO_FSK_CRC_OFF;
 
 	SubghzRegisterTxConfig();
 }
 
 uint32_t SubghzApp_GetDatarate() {
-	return TXdatarate;
+	return txConfig.fsk.BitRate;
 }
 
 void SubghzApp_SetDatarate(uint32_t datarate) {
-	TXdatarate = datarate;
+	txConfig.fsk.BitRate = datarate;
 	TXtimeout = 2 * MAX_TX_BUF * 1000 / datarate;
 
 	SubghzRegisterTxConfig();
 }
 
 uint32_t SubghzApp_GetFreqDeviation() {
-	return TXfdev;
+	return txConfig.fsk.FrequencyDeviation;
 }
 
 void SubghzApp_SetFreqDeviation(uint32_t fdev) {
-	TXfdev = fdev;
+	txConfig.fsk.FrequencyDeviation = fdev;
 
 	SubghzRegisterTxConfig();
 }
@@ -236,11 +251,8 @@ void SubghzApp_SetFreqDeviation(uint32_t fdev) {
 
 /* Private functions ---------------------------------------------------------*/
 static void SubghzRegisterTxConfig() {
-	Radio.SetTxConfig(
-		  radioModem, TXpower, TXfdev, 0, TXdatarate,
-		  0, TXpreambleLen, false, TXcrcOn, TXfreqHop,
-		  TXhopPeriod, 0, TXtimeout
-	);
+	/* ( GenericModems_t modem, TxConfigGeneric_t* config, int8_t power, uint32_t timeout ); */
+	Radio.RadioSetTxGenericConfig(radioModem, &txConfig, TXpower, TXtimeout);
 }
 
 static void SubghzTimerCallback(void *argument) {
