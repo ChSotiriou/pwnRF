@@ -42,7 +42,9 @@ static BaseType_t commandFreqCallback(char *pcWriteBuffer, size_t xWriteBufferLe
 static BaseType_t commandFreqDeviationCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandPowerCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandDatarateCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
+static BaseType_t commandPreambleCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandCRCCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
+static BaseType_t commandSyncwordCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandTransmitCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandTransmitContinuousCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 
@@ -87,10 +89,24 @@ static const CLI_Command_Definition_t commandDatarate = {
     -1
 };
 
+static const CLI_Command_Definition_t commandPreamble = {
+    "preamble",
+    "preamble [byte_count]: Get/Set the preamble length\r\n",
+    commandPreambleCallback,
+    -1
+};
+
 static const CLI_Command_Definition_t commandCRC = {
     "crc",
     "crc [on|off]: Get/Set the if a CRC is transmitted\r\n",
     commandCRCCallback,
+    -1
+};
+
+static const CLI_Command_Definition_t commandSyncword = {
+    "syncword",
+    "syncword [length] [word]: Set a Syncword for trnsmission before the message\r\n",
+    commandSyncwordCallback,
     -1
 };
 
@@ -232,6 +248,29 @@ static BaseType_t commandDatarateCallback(char *pcWriteBuffer, size_t xWriteBuff
 	return pdFALSE;
 }
 
+static BaseType_t commandPreambleCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
+	memset(pcWriteBuffer, 0, xWriteBufferLen);
+
+	BaseType_t paramLen;
+	const char *param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &paramLen);
+
+	if (param == NULL) { /* No arguments */
+		uint32_t len = SubghzApp_GetPreambleLength();
+		snprintf(pcWriteBuffer, xWriteBufferLen, "Preamble Length = %lu byte%s\r\n", len, (len == 0 || len > 1) ? "s" : "");
+	} else {
+		uint32_t newPreamble = atoll(param);
+
+		if (newPreamble > 0 && newPreamble <= 30) {
+			SubghzApp_SetPreambleLength(newPreamble);
+			strcpy(pcWriteBuffer, "Preamble Length Set Successfully\r\n");
+		} else {
+			strcpy(pcWriteBuffer, "Invalid Preamble Length\r\n");
+		}
+	}
+
+	return pdFALSE;
+}
+
 static BaseType_t commandCRCCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
 	memset(pcWriteBuffer, 0, xWriteBufferLen);
 
@@ -252,6 +291,38 @@ static BaseType_t commandCRCCallback(char *pcWriteBuffer, size_t xWriteBufferLen
 		}
 	}
 
+
+	return pdFALSE;
+}
+
+static BaseType_t commandSyncwordCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
+	memset(pcWriteBuffer, 0, xWriteBufferLen);
+
+	BaseType_t paramLen;
+	const char *param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &paramLen);
+
+	if (param == NULL) {
+		char word[8];
+		uint32_t len = SubghzApp_GetSyncword(word);
+
+		word[len] = '\x00';
+		snprintf(pcWriteBuffer, xWriteBufferLen, "Syncword of size %ld: %s\r\n", len, word);
+
+		return pdFALSE;
+	}
+
+	uint32_t len = atoll(param);
+
+	if (len >= 0 && len <= 8) {
+		param = FreeRTOS_CLIGetParameter(pcCommandString, 2, &paramLen);
+		uint32_t param_len = param == NULL ? 0 : strlen(param);
+
+		SubghzApp_SetSyncword(param_len < len ? param_len : len, param);
+
+		strcpy(pcWriteBuffer, "Syncword Set Successfully\r\n");
+	} else {
+		strcpy(pcWriteBuffer, "Invalid Argument\r\n");
+	}
 
 	return pdFALSE;
 }
@@ -388,7 +459,9 @@ void commandLineInit(void) {
 	FreeRTOS_CLIRegisterCommand(&commandFreqDeviation);
 	FreeRTOS_CLIRegisterCommand(&commandPower);
 	FreeRTOS_CLIRegisterCommand(&commandDatarate);
+	FreeRTOS_CLIRegisterCommand(&commandPreamble);
 	FreeRTOS_CLIRegisterCommand(&commandCRC);
+	FreeRTOS_CLIRegisterCommand(&commandSyncword);
 	FreeRTOS_CLIRegisterCommand(&commandTransmit);
 	FreeRTOS_CLIRegisterCommand(&commandTransmitContinuous);
 

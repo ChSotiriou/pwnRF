@@ -247,6 +247,28 @@ void SubghzApp_SetFreqDeviation(uint32_t fdev) {
 
 	SubghzRegisterTxConfig();
 }
+
+uint32_t SubghzApp_GetPreambleLength() {
+	return txConfig.fsk.PreambleLen;
+}
+
+void SubghzApp_SetPreambleLength(uint32_t preamble) {
+	txConfig.fsk.PreambleLen = preamble;
+
+	SubghzRegisterTxConfig();
+}
+
+uint32_t SubghzApp_GetSyncword(char *word) {
+	memcpy(word, txConfig.fsk.SyncWord, txConfig.fsk.SyncWordLength);
+	return txConfig.fsk.SyncWordLength;
+
+}
+void SubghzApp_SetSyncword(uint32_t len, const char *word) {
+	txConfig.fsk.SyncWordLength = len;
+	memcpy(txConfig.fsk.SyncWord, word, len);
+
+	SubghzRegisterTxConfig();
+}
 /* USER CODE END EF */
 
 /* Private functions ---------------------------------------------------------*/

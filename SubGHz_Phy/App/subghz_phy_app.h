@@ -83,6 +83,12 @@ void SubghzApp_SetFreqDeviation(uint32_t fdev);
 
 uint8_t SubghzApp_GetCRC();
 void SubghzApp_SetCRC(uint8_t crcEn);
+
+uint32_t SubghzApp_GetPreambleLength();
+void SubghzApp_SetPreambleLength(uint32_t preamble);
+
+uint32_t SubghzApp_GetSyncword(char *word);
+void SubghzApp_SetSyncword(uint32_t len, const char *word);
 /* USER CODE END EFP */
 
 #ifdef __cplusplus
