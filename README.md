@@ -18,5 +18,8 @@ To use the device and access the command line, connect the board to your compute
 - `freqDeviation [Hz]`: Get/Set the transmitting frequency deviation (100Hz - 100kHz)
 - `power [dBm]`: Get/Set the transmitter power (1dBm - 22dBm)
 - `datarate [bps]`: Get/Set the transmitter datarate (0bps - 500kbps)
+- `preamble [byte_count]`: Get/Set the preamble length
+- `crc [on|off]`: Get/Set the if a CRC is transmitted
+- `syncword [length] [word]`: Set a Syncword for trnsmission before the message
 - `transmit <msg>`: Transmits a digital message 
 - `transmitContinuous <ms> <msg>`: Continuously transmit a message every ms interval. Pass 0ms to stop transmission.
