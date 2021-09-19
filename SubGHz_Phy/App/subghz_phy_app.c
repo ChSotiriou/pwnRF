@@ -269,9 +269,7 @@ void SubghzApp_SetSyncword(uint32_t len, const char *word) {
 
 	SubghzRegisterTxConfig();
 }
-/* USER CODE END EF */
 
-/* Private functions ---------------------------------------------------------*/
 static void SubghzRegisterTxConfig() {
 	/* ( GenericModems_t modem, TxConfigGeneric_t* config, int8_t power, uint32_t timeout ); */
 	Radio.RadioSetTxGenericConfig(radioModem, &txConfig, TXpower, TXtimeout);
@@ -280,7 +278,9 @@ static void SubghzRegisterTxConfig() {
 static void SubghzTimerCallback(void *argument) {
 	SubghzApp_Sent(continuousMsg, continuousSize);
 }
+/* USER CODE END EF */
 
+/* Private functions ---------------------------------------------------------*/
 static void OnTxDone(void)
 {
   /* USER CODE BEGIN OnTxDone_1 */

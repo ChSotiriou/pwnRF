@@ -28,6 +28,16 @@
  ********************************/
 #define CLI_BUF_SIZE 128
 #define CLI_QUEUE_SIZE 5
+#define CLI_HISTORY_QUEUE_SIZE 5
+
+#define ANSI_CURSOR_UP 'A'
+#define ANSI_CURSOR_DOWN 'B'
+#define ANSI_CURSOR_RIGHT 'C'
+#define ANSI_CURSOR_LEFT 'D'
+
+#define CLI_SAVE_CURSOR_POS "\e7"
+#define CLI_RESTORE_CURSOR_POS "\e8"
+#define CLI_CLEAR_TO_SCREEN_END "\e[0J"
 
 /********************************
  * External Variables
@@ -144,6 +154,12 @@ static osMessageQueueId_t cliQueue;
 static osMessageQueueAttr_t cliQueueAttr = {
 		.name = "cliQueue"
 };
+
+uint8_t ansi_code = 0;
+uint8_t historyMode = 0;
+int32_t historyIndex = -1;
+uint32_t historyLen = 0, historyStart = 0;
+static uint8_t cliHistory[CLI_HISTORY_QUEUE_SIZE][CLI_BUF_SIZE] = {0};
 
 /********************************
  * Static Functions
@@ -291,7 +307,6 @@ static BaseType_t commandCRCCallback(char *pcWriteBuffer, size_t xWriteBufferLen
 		}
 	}
 
-
 	return pdFALSE;
 }
 
@@ -381,12 +396,24 @@ static void cliTask (void *argument) {
 	static char txdata[CLI_BUF_SIZE];
 
 	HAL_UART_Transmit(&huart2, (uint8_t *) "> ", 2, 10);
+	HAL_UART_Transmit(&huart2, (uint8_t *) CLI_SAVE_CURSOR_POS, sizeof(CLI_SAVE_CURSOR_POS), 10);
+
 	HAL_UART_Receive_IT(&huart2, &cliByteRecved, 1);
 
 	for (;;) {
+		memset(rxdata, 0, CLI_BUF_SIZE);
 		if (osMessageQueueGet(cliQueue, rxdata, 0, osWaitForever) == osOK) {
 			/* Received Command */
 			static uint8_t moreData;
+
+			/* Add to history array */
+			if (historyLen != CLI_HISTORY_QUEUE_SIZE) {
+				strncpy(cliHistory[historyLen], rxdata, CLI_BUF_SIZE);
+				historyLen++;
+			} else {
+				historyStart = (historyStart + 1) % CLI_HISTORY_QUEUE_SIZE;
+				strncpy(cliHistory[historyStart - 1], rxdata, CLI_BUF_SIZE);
+			}
 
 			do {
 				moreData = FreeRTOS_CLIProcessCommand(rxdata, txdata, CLI_BUF_SIZE);
@@ -398,6 +425,10 @@ static void cliTask (void *argument) {
 			} while (moreData != pdFALSE);
 
 			HAL_UART_Transmit(&huart2, (uint8_t *) "> ", 2, 10);
+			HAL_UART_Transmit(&huart2, (uint8_t *) CLI_SAVE_CURSOR_POS, sizeof(CLI_SAVE_CURSOR_POS), 10);
+
+			historyIndex = -1;
+			historyMode = 0;
 		}
 
 		osDelay(10);
@@ -407,6 +438,19 @@ static void cliTask (void *argument) {
 /********************************
  * UART Callback
  ********************************/
+static void cliPrintHistory(uint32_t idx) {
+	uint8_t realHistoryIndex = ((historyLen - idx - 1) + historyStart) % CLI_HISTORY_QUEUE_SIZE;
+	memset(recvBuf, 0, CLI_BUF_SIZE);
+	strncpy(recvBuf, cliHistory[realHistoryIndex], strlen(cliHistory[realHistoryIndex]));
+
+	HAL_UART_Transmit(&huart2, (uint8_t *) CLI_RESTORE_CURSOR_POS, sizeof(CLI_RESTORE_CURSOR_POS), 10);
+	HAL_UART_Transmit(&huart2, (uint8_t *) CLI_CLEAR_TO_SCREEN_END, sizeof(CLI_CLEAR_TO_SCREEN_END), 10); /* Clear Line */
+
+	recvBufSize = strlen((char *) recvBuf);
+
+	HAL_UART_Transmit(&huart2, recvBuf, recvBufSize, 10);
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
 
@@ -415,10 +459,38 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	}
 
 	/* Add Byte to long buffer */
-	if (cliByteRecved == '\b' && recvBufSize != 0) {
-		recvBufSize--;
-		recvBuf[recvBufSize] = 0;
-		HAL_UART_Transmit(&huart2, (uint8_t *) "\b", 1, 10);
+	if (ansi_code == 2) { /* ANSI Code Received */
+		switch(cliByteRecved) {
+		case ANSI_CURSOR_UP:
+
+			if (historyIndex < CLI_HISTORY_QUEUE_SIZE && historyLen > historyIndex + 1) {
+				if (historyIndex != CLI_HISTORY_QUEUE_SIZE - 1) historyIndex++;
+				historyMode = 1;
+				cliPrintHistory(historyIndex);
+			}
+
+			break;
+		case ANSI_CURSOR_DOWN:
+			if (historyIndex > 0) {
+				historyIndex--;
+				cliPrintHistory(historyIndex);
+			}
+
+			break;
+		}
+
+		ansi_code = 0;
+	} else if (cliByteRecved == '\b') {
+		if (recvBufSize != 0) {
+			recvBufSize--;
+			recvBuf[recvBufSize] = 0;
+			HAL_UART_Transmit(&huart2, (uint8_t *) "\b", 1, 10);
+			HAL_UART_Transmit(&huart2, (uint8_t *) CLI_CLEAR_TO_SCREEN_END, sizeof(CLI_CLEAR_TO_SCREEN_END), 10);
+		}
+	} else if (cliByteRecved == '\e' && ansi_code == 0) {
+		ansi_code++;
+	} else if (cliByteRecved == '[' && ansi_code == 1) {
+		ansi_code++;
 	} else {
 		HAL_UART_Transmit(&huart2, &cliByteRecved, 1, 10);
 		recvBuf[recvBufSize] = cliByteRecved;

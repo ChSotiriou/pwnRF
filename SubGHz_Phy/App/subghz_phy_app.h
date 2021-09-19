@@ -75,14 +75,14 @@ void SubghzApp_SetFreq(uint32_t freq);
 uint32_t SubghzApp_GetPower();
 void SubghzApp_SetPower(uint32_t power);
 
+uint8_t SubghzApp_GetCRC();
+void SubghzApp_SetCRC(uint8_t crcEn);
+
 uint32_t SubghzApp_GetDatarate();
-void SubghzApp_SetDatarate(uint32_t power);
+void SubghzApp_SetDatarate(uint32_t datarate);
 
 uint32_t SubghzApp_GetFreqDeviation();
 void SubghzApp_SetFreqDeviation(uint32_t fdev);
-
-uint8_t SubghzApp_GetCRC();
-void SubghzApp_SetCRC(uint8_t crcEn);
 
 uint32_t SubghzApp_GetPreambleLength();
 void SubghzApp_SetPreambleLength(uint32_t preamble);
