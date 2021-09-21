@@ -451,12 +451,14 @@ static void cliTask (void *argument) {
 			static uint8_t moreData;
 
 			/* Add to history array */
-			if (historyLen != CLI_HISTORY_QUEUE_SIZE) {
-				strncpy(cliHistory[historyLen], rxdata, CLI_BUF_SIZE);
-				historyLen++;
-			} else {
-				historyStart = (historyStart + 1) % CLI_HISTORY_QUEUE_SIZE;
-				strncpy(cliHistory[historyStart - 1], rxdata, CLI_BUF_SIZE);
+			if (strlen(rxdata) != 0) {
+				if (historyLen != CLI_HISTORY_QUEUE_SIZE) {
+					strncpy(cliHistory[historyLen], rxdata, CLI_BUF_SIZE);
+					historyLen++;
+				} else {
+					historyStart = (historyStart + 1) % CLI_HISTORY_QUEUE_SIZE;
+					strncpy(cliHistory[historyStart - 1], rxdata, CLI_BUF_SIZE);
+				}
 			}
 
 			do {
@@ -506,20 +508,17 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (ansi_code == 2) { /* ANSI Code Received */
 		switch(cliByteRecved) {
 		case ANSI_CURSOR_UP:
-
 			if (historyIndex < CLI_HISTORY_QUEUE_SIZE && historyLen > historyIndex + 1) {
 				if (historyIndex != CLI_HISTORY_QUEUE_SIZE - 1) historyIndex++;
 				historyMode = 1;
 				cliPrintHistory(historyIndex);
 			}
-
 			break;
 		case ANSI_CURSOR_DOWN:
 			if (historyIndex > 0) {
 				historyIndex--;
 				cliPrintHistory(historyIndex);
 			}
-
 			break;
 		}
 
