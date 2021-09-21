@@ -270,6 +270,17 @@ void SubghzApp_SetSyncword(uint32_t len, const char *word) {
 	SubghzRegisterTxConfig();
 }
 
+uint8_t SubghzApp_GetWhiteningStatus() {
+	return txConfig.fsk.Whitening == RADIO_FSK_DC_FREEWHITENING ? true : false;
+}
+void SubghzApp_SetWhitening(uint8_t active, uint16_t seed) {
+	/* Uses x^9 + x^5 + 1 polynomial */
+	txConfig.fsk.Whitening = active ? RADIO_FSK_DC_FREEWHITENING : RADIO_FSK_DC_FREE_OFF;
+	txConfig.fsk.whiteSeed = seed;
+
+	SubghzRegisterTxConfig();
+}
+
 static void SubghzRegisterTxConfig() {
 	/* ( GenericModems_t modem, TxConfigGeneric_t* config, int8_t power, uint32_t timeout ); */
 	Radio.RadioSetTxGenericConfig(radioModem, &txConfig, TXpower, TXtimeout);

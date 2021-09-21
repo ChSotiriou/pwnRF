@@ -54,6 +54,7 @@ static BaseType_t commandPowerCallback(char *pcWriteBuffer, size_t xWriteBufferL
 static BaseType_t commandDatarateCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandPreambleCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandCRCCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
+static BaseType_t commandWhiteningCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandSyncwordCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandTransmitCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
 static BaseType_t commandTransmitContinuousCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString);
@@ -108,8 +109,15 @@ static const CLI_Command_Definition_t commandPreamble = {
 
 static const CLI_Command_Definition_t commandCRC = {
     "crc",
-    "crc [on|off]: Get/Set the if a CRC is transmitted\r\n",
+    "crc [on|off]: Get/Set if a CRC is transmitted\r\n",
     commandCRCCallback,
+    -1
+};
+
+static const CLI_Command_Definition_t commandWhitening = {
+    "whitening",
+    "whitening [on|off] [seed]: Get/Set the whitening status and seed\r\n",
+    commandWhiteningCallback,
     -1
 };
 
@@ -303,6 +311,42 @@ static BaseType_t commandCRCCallback(char *pcWriteBuffer, size_t xWriteBufferLen
 			strcpy(pcWriteBuffer, "Turned CRC Off\r\n");
 			SubghzApp_SetCRC(0);
 		} else {
+			strcpy(pcWriteBuffer, "Invalid Argument\r\n");
+		}
+	}
+
+	return pdFALSE;
+}
+
+static BaseType_t commandWhiteningCallback(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString) {
+	memset(pcWriteBuffer, 0, xWriteBufferLen);
+
+	BaseType_t paramLen;
+	const char *param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &paramLen);
+
+	if (param == NULL) { /* No arguments */
+		snprintf(pcWriteBuffer, xWriteBufferLen, "Whitening is %s\r\n", SubghzApp_GetWhiteningStatus() ? "On" : "Off");
+	} else {
+		if (!strncmp(param, "on", paramLen)) {
+			BaseType_t paramLen;
+			const char *param = FreeRTOS_CLIGetParameter(pcCommandString, 2, &paramLen);
+
+			if (param == NULL) {
+				goto whitening_invalid_args;
+			}
+
+			uint32_t seed = atol(param);
+
+			SubghzApp_SetWhitening(1, seed);
+
+			snprintf(pcWriteBuffer, xWriteBufferLen, "Turned Whitening On with seed=0x%x\r\n", seed);
+
+			SubghzApp_SetCRC(1);
+		} else if (!strncmp(param, "off", paramLen)) {
+			strcpy(pcWriteBuffer, "Turned Whitening Off\r\n");
+			SubghzApp_SetWhitening(0, 0);
+		} else {
+		whitening_invalid_args:
 			strcpy(pcWriteBuffer, "Invalid Argument\r\n");
 		}
 	}
@@ -533,6 +577,7 @@ void commandLineInit(void) {
 	FreeRTOS_CLIRegisterCommand(&commandDatarate);
 	FreeRTOS_CLIRegisterCommand(&commandPreamble);
 	FreeRTOS_CLIRegisterCommand(&commandCRC);
+	FreeRTOS_CLIRegisterCommand(&commandWhitening);
 	FreeRTOS_CLIRegisterCommand(&commandSyncword);
 	FreeRTOS_CLIRegisterCommand(&commandTransmit);
 	FreeRTOS_CLIRegisterCommand(&commandTransmitContinuous);

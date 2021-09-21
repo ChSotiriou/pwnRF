@@ -89,6 +89,9 @@ void SubghzApp_SetPreambleLength(uint32_t preamble);
 
 uint32_t SubghzApp_GetSyncword(char *word);
 void SubghzApp_SetSyncword(uint32_t len, const char *word);
+
+void SubghzApp_SetWhitening(uint8_t active, uint16_t seed);
+uint8_t SubghzApp_GetWhiteningStatus();
 /* USER CODE END EFP */
 
 #ifdef __cplusplus
