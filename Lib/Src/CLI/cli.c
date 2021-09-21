@@ -167,7 +167,7 @@ uint8_t ansi_code = 0;
 uint8_t historyMode = 0;
 int32_t historyIndex = -1;
 uint32_t historyLen = 0, historyStart = 0;
-static uint8_t cliHistory[CLI_HISTORY_QUEUE_SIZE][CLI_BUF_SIZE] = {0};
+static char cliHistory[CLI_HISTORY_QUEUE_SIZE][CLI_BUF_SIZE] = {0};
 
 /********************************
  * Static Functions
@@ -339,7 +339,7 @@ static BaseType_t commandWhiteningCallback(char *pcWriteBuffer, size_t xWriteBuf
 
 			SubghzApp_SetWhitening(1, seed);
 
-			snprintf(pcWriteBuffer, xWriteBufferLen, "Turned Whitening On with seed=0x%x\r\n", seed);
+			snprintf(pcWriteBuffer, xWriteBufferLen, "Turned Whitening On with seed=0x%x\r\n", (uint16_t) seed);
 
 			SubghzApp_SetCRC(1);
 		} else if (!strncmp(param, "off", paramLen)) {
@@ -485,7 +485,7 @@ static void cliTask (void *argument) {
 static void cliPrintHistory(uint32_t idx) {
 	uint8_t realHistoryIndex = ((historyLen - idx - 1) + historyStart) % CLI_HISTORY_QUEUE_SIZE;
 	memset(recvBuf, 0, CLI_BUF_SIZE);
-	strncpy(recvBuf, cliHistory[realHistoryIndex], strlen(cliHistory[realHistoryIndex]));
+	strncpy((char *) recvBuf, cliHistory[realHistoryIndex], strlen(cliHistory[realHistoryIndex]));
 
 	HAL_UART_Transmit(&huart2, (uint8_t *) CLI_RESTORE_CURSOR_POS, sizeof(CLI_RESTORE_CURSOR_POS), 10);
 	HAL_UART_Transmit(&huart2, (uint8_t *) CLI_CLEAR_TO_SCREEN_END, sizeof(CLI_CLEAR_TO_SCREEN_END), 10); /* Clear Line */
