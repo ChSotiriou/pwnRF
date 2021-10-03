@@ -182,10 +182,16 @@ void SubghzApp_Init(void)
 }
 
 /* USER CODE BEGIN EF */
+/*
+ * @brief: Sents an RF packet based on the current settings
+ */
 void SubghzApp_Sent(char *msg, uint8_t size) {
 	Radio.Send((uint8_t *) msg, size);
 }
 
+/*
+ * @brief: Continuously sents RF packets every <ms> milliseconds
+ */
 void SubghzApp_StartContinuous(char *msg, uint8_t size, uint32_t ms) {
 	memcpy(continuousMsg, msg, size);
 	continuousSize = size;
@@ -193,44 +199,72 @@ void SubghzApp_StartContinuous(char *msg, uint8_t size, uint32_t ms) {
 	osTimerStart(subghzTimer, ms);
 }
 
+/*
+ * @brief: Stop sending continuous packets
+ */
 void SubghzApp_StopContinuous() {
 	osTimerStop(subghzTimer);
 }
 
+/*
+ * @brief: Get RF frequency
+ */
 uint32_t SubghzApp_GetFreq() {
 	return TXfreq;
 }
 
+/*
+ * @brief: Set RF frequency
+ */
 void SubghzApp_SetFreq(uint32_t freq) {
 	TXfreq = freq;
 
 	Radio.SetChannel(TXfreq);
 }
 
+/*
+ * @brief: Get RF power
+ */
 uint32_t SubghzApp_GetPower() {
 	return TXpower;
 }
 
+/*
+ * @brief: Set RF power
+ */
 void SubghzApp_SetPower(uint32_t power) {
 	TXpower = power;
 
 	SubghzRegisterTxConfig();
 }
 
+
+/*
+ * @brief: Get RF packet CRC status
+ */
 uint8_t SubghzApp_GetCRC() {
 	return txConfig.fsk.CrcLength != RADIO_FSK_CRC_OFF;
 }
 
+/*
+ * @brief: Enable RF packet CRC
+ */
 void SubghzApp_SetCRC(uint8_t crcEn) {
 	txConfig.fsk.CrcLength = crcEn ? RADIO_FSK_CRC_2_BYTES : RADIO_FSK_CRC_OFF;
 
 	SubghzRegisterTxConfig();
 }
 
+/*
+ * @brief: Get RF datarate
+ */
 uint32_t SubghzApp_GetDatarate() {
 	return txConfig.fsk.BitRate;
 }
 
+/*
+ * @brief: Set RF datarate
+ */
 void SubghzApp_SetDatarate(uint32_t datarate) {
 	txConfig.fsk.BitRate = datarate;
 	TXtimeout = 2 * MAX_TX_BUF * 1000 / datarate;
@@ -238,31 +272,50 @@ void SubghzApp_SetDatarate(uint32_t datarate) {
 	SubghzRegisterTxConfig();
 }
 
+/*
+ * @brief: Get RF FSK frequency deviation
+ */
 uint32_t SubghzApp_GetFreqDeviation() {
 	return txConfig.fsk.FrequencyDeviation;
 }
 
+/*
+ * @brief: Set RF FSK frequency deviation
+ */
 void SubghzApp_SetFreqDeviation(uint32_t fdev) {
 	txConfig.fsk.FrequencyDeviation = fdev;
 
 	SubghzRegisterTxConfig();
 }
 
+/*
+ * @brief: Get RF packet preamble length
+ */
 uint32_t SubghzApp_GetPreambleLength() {
 	return txConfig.fsk.PreambleLen;
 }
 
+/*
+ * @brief: Set RF packet preamble length
+ */
 void SubghzApp_SetPreambleLength(uint32_t preamble) {
 	txConfig.fsk.PreambleLen = preamble;
 
 	SubghzRegisterTxConfig();
 }
 
+/*
+ * @brief: Get RF packet syncword
+ */
 uint32_t SubghzApp_GetSyncword(char *word) {
 	memcpy(word, txConfig.fsk.SyncWord, txConfig.fsk.SyncWordLength);
 	return txConfig.fsk.SyncWordLength;
 
 }
+
+/*
+ * @brief: Set RF packet syncword
+ */
 void SubghzApp_SetSyncword(uint32_t len, const char *word) {
 	txConfig.fsk.SyncWordLength = len;
 	memcpy(txConfig.fsk.SyncWord, word, len);
@@ -270,9 +323,16 @@ void SubghzApp_SetSyncword(uint32_t len, const char *word) {
 	SubghzRegisterTxConfig();
 }
 
+/*
+ * @brief: Check if whitening is enabled
+ */
 uint8_t SubghzApp_GetWhiteningStatus() {
 	return txConfig.fsk.Whitening == RADIO_FSK_DC_FREEWHITENING ? true : false;
 }
+
+/*
+ * @brief: Set whitening enable
+ */
 void SubghzApp_SetWhitening(uint8_t active, uint16_t seed) {
 	/* Uses x^9 + x^5 + 1 polynomial */
 	txConfig.fsk.Whitening = active ? RADIO_FSK_DC_FREEWHITENING : RADIO_FSK_DC_FREE_OFF;
@@ -281,11 +341,17 @@ void SubghzApp_SetWhitening(uint8_t active, uint16_t seed) {
 	SubghzRegisterTxConfig();
 }
 
+/*
+ * @brief: Register an updated TX Configuration to the peripheral
+ */
 static void SubghzRegisterTxConfig() {
 	/* ( GenericModems_t modem, TxConfigGeneric_t* config, int8_t power, uint32_t timeout ); */
 	Radio.RadioSetTxGenericConfig(radioModem, &txConfig, TXpower, TXtimeout);
 }
 
+/*
+ * @brief: Triggers when the continuous trigger timer triggers
+ */
 static void SubghzTimerCallback(void *argument) {
 	SubghzApp_Sent(continuousMsg, continuousSize);
 }
